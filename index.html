@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tabletop.js/1.6.0/tabletop.min.js"></script>
 <head>
 <title>MLB Snapshot</title>
 
@@ -22,6 +23,52 @@ display:grid;
 grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
 gap:20px;
 }
+  <script>
+var publicSpreadsheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSdTOd2bszOwB3mFbJfLHxeaFsGTWucle4tqkDTiMGdysKQJLOz8_By-pel1D6zSm6ZH1J8XsBUQYYb/pubhtml';
+
+function showData(data) {
+    const grid = document.querySelector('.grid');
+    grid.innerHTML = ''; // clear existing
+
+    // Group players by team
+    let teams = {};
+    data.forEach(player => {
+        if (!teams[player.Team]) teams[player.Team] = [];
+        teams[player.Team].push(player);
+    });
+
+    // For each team, make a card
+    Object.keys(teams).forEach(teamName => {
+        let teamPlayers = teams[teamName];
+
+        // Sort top 5 by each stat
+        const stats = ['AVG','HR','RBI','SB','SLG'];
+        let cardHtml = `<div class="card"><div class="team">${teamName}</div>`;
+
+        stats.forEach(stat => {
+            cardHtml += `<div class="stat-title">${stat}</div>`;
+            // Sort descending
+            let top5 = teamPlayers.sort((a,b)=>parseFloat(b[stat])-parseFloat(a[stat])).slice(0,5);
+            top5.forEach(p=>{
+                // For now, just neutral delta
+                cardHtml += `<div class="player">${p.Player} <span>${p[stat]} <span class="neutral">(0)</span></span></div>`;
+            });
+        });
+
+        cardHtml += `</div>`;
+        grid.innerHTML += cardHtml;
+    });
+}
+
+window.addEventListener('DOMContentLoaded', init);
+function init() {
+    Tabletop.init({
+        key: publicSpreadsheetUrl,
+        callback: showData,
+        simpleSheet: true
+    });
+}
+</script>
 
 .card{
 background:#11151a;
