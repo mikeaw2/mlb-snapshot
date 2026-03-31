@@ -4,7 +4,8 @@
     <title>MLB Snapshot</title>
     <style>
         body { background: #0b0e11; color: white; font-family: Arial; margin: 0; padding: 20px; }
-        h1 { text-align: center; margin-bottom: 30px; }
+        h1 { text-align: center; margin-bottom: 20px; }
+        #status { text-align: center; margin-bottom: 20px; color: #ff4d4d; }
         .grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(320px,1fr)); gap: 20px; }
         .card { background: #11151a; padding: 15px; border-radius: 10px; box-shadow:0 0 10px rgba(0,0,0,.5); }
         .team { font-size: 20px; font-weight:bold; margin-bottom: 10px; }
@@ -17,10 +18,11 @@
 </head>
 <body>
 <h1>MLB Snapshot</h1>
+<div id="status">Loading CSV…</div>
 <div class="grid"></div>
 
 <script>
-const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSdTOd2bszOwB3mFbJfLHxeaFsGTWucle4tqkDTiMGdysKQJLOz8_By-pel1D6zSm6ZH1J8XsBUQYYb/pub?output=csv'; // replace with your CSV publish link
+const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSdTOd2bszOwB3mFbJfLHxeaFsGTWucle4tqkDTiMGdysKQJLOz8_By-pel1D6zSm6ZH1J8XsBUQYYb/pub?output=csv';
 
 const allTeams = [
     "Yankees","Red Sox","Rays","Blue Jays","Orioles",
@@ -31,10 +33,75 @@ const allTeams = [
     "Rangers","Athletics","Angels","Mariners","Blue Jays"
 ];
 
+// CSV parser
 function parseCSV(text) {
     const lines = text.trim().split('\n');
     const headers = lines.shift().split(',');
     return lines.map(line => {
+        const values = line.split(',');
+        const obj = {};
+        headers.forEach((h,i) => obj[h] = values[i]);
+        return obj;
+    });
+}
+
+// Render cards
+function renderCards(data) {
+    const grid = document.querySelector('.grid');
+    grid.innerHTML = '';
+    const stats = ['AVG','HR','RBI','SB','SLG'];
+    const teamsData = {};
+    data.forEach(p => { if(!teamsData[p.Team]) teamsData[p.Team] = []; teamsData[p.Team].push(p); });
+
+    allTeams.forEach(team => {
+        const players = teamsData[team] || [];
+        let cardHtml = `<div class="card"><div class="team">${team}</div>`;
+        stats.forEach(stat => {
+            cardHtml += `<div class="stat-title">${stat}</div>`;
+            const top5 = players.sort((a,b)=>parseFloat(b[stat]||0)-parseFloat(a[stat]||0)).slice(0,5);
+            if(top5.length===0){
+                cardHtml += `<div class="player">— <span>— <span class="neutral">(0)</span></span></div>`;
+            } else {
+                top5.forEach(p=>{
+                    let curr = parseFloat(p[stat]||0);
+                    let prev = parseFloat(p[stat+'_prev']||0);
+                    let delta = curr - prev;
+                    let deltaClass = delta>0?'up':delta<0?'down':'neutral';
+                    if(['HR','RBI','SB'].includes(stat)) delta=parseInt(delta); else delta=delta.toFixed(3);
+                    cardHtml += `<div class="player">${p.Player} <span>${curr} <span class="${deltaClass}">(${delta})</span></span></div>`;
+                });
+            }
+        });
+        cardHtml += `</div>`;
+        grid.innerHTML += cardHtml;
+    });
+}
+
+// Fetch CSV and render
+function fetchAndRender() {
+    document.getElementById('status').textContent = 'Loading CSV…';
+    fetch(csvUrl)
+        .then(r => {
+            if(!r.ok) throw new Error(`HTTP ${r.status}`);
+            return r.text();
+        })
+        .then(text => {
+            const data = parseCSV(text);
+            document.getElementById('status').textContent = '';
+            renderCards(data);
+        })
+        .catch(e => {
+            console.error('Error fetching CSV:', e);
+            document.getElementById('status').textContent = 'Failed to fetch sheet. Check your CSV link.';
+        });
+}
+
+// Initial load + auto-refresh every 60 seconds
+fetchAndRender();
+setInterval(fetchAndRender, 60000);
+</script>
+</body>
+</html>    return lines.map(line => {
         const values = line.split(',');
         const obj = {};
         headers.forEach((h,i) => obj[h] = values[i]);
