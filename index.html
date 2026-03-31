@@ -1,162 +1,117 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>MLB Snapshot</title>
-    <style>
-        body { background: #0b0e11; color: white; font-family: Arial; margin: 0; padding: 20px; }
-        h1 { text-align: center; margin-bottom: 20px; }
-        #status { text-align: center; margin-bottom: 20px; color: #ff4d4d; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(320px,1fr)); gap: 20px; }
-        .card { background: #11151a; padding: 15px; border-radius: 10px; box-shadow:0 0 10px rgba(0,0,0,.5); }
-        .team { font-size: 20px; font-weight:bold; margin-bottom: 10px; }
-        .stat-title { color:#888; margin-top:10px; }
-        .player { display:flex; justify-content:space-between; font-size:14px; }
-        .up { color:#00ff9c; }
-        .down { color:#ff4d4d; }
-        .neutral { color:#999; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MLB Snapshot</title>
+<style>
+  body {
+    background-color: #121212;
+    color: #eee;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+  }
+  header {
+    padding: 1rem;
+    text-align: center;
+    background-color: #1f1f1f;
+    font-size: 2rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+  }
+  .container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 1rem;
+  }
+  .team-card {
+    background-color: #1f1f1f;
+    border-radius: 8px;
+    margin: 0.5rem;
+    padding: 1rem;
+    width: 220px;
+    box-shadow: 0 0 5px rgba(255,255,255,0.1);
+  }
+  .team-card h2 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.2rem;
+    text-align: center;
+  }
+  .player {
+    display: flex;
+    justify-content: space-between;
+    margin: 0.2rem 0;
+  }
+  .delta {
+    font-weight: bold;
+  }
+  .delta.up { color: #4CAF50; }
+  .delta.down { color: #F44336; }
+  footer {
+    text-align: center;
+    padding: 0.5rem;
+    font-size: 0.9rem;
+    background-color: #1f1f1f;
+  }
+</style>
 </head>
 <body>
-<h1>MLB Snapshot</h1>
-<div id="status">Loading CSV…</div>
-<div class="grid"></div>
+<header>MLB Snapshot</header>
+<div class="container" id="teams-container"></div>
+<footer id="last-updated"></footer>
 
 <script>
-const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSdTOd2bszOwB3mFbJfLHxeaFsGTWucle4tqkDTiMGdysKQJLOz8_By-pel1D6zSm6ZH1J8XsBUQYYb/pub?output=csv';
-
+const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSdTOd2bszOwB3mFbJfLHxeaFsGTWucle4tqkDTiMGdysKQJLOz8_By-pel1D6zSm6ZH1J8XsBUQYYb/pub?output=csv'; 
 const allTeams = [
-    "Yankees","Red Sox","Rays","Blue Jays","Orioles",
-    "White Sox","Guardians","Tigers","Twins","Royals",
-    "Dodgers","Giants","Padres","Diamondbacks","Rockies",
-    "Cubs","Cardinals","Brewers","Pirates","Reds",
-    "Braves","Marlins","Mets","Phillies","Nationals",
-    "Rangers","Athletics","Angels","Mariners","Blue Jays"
-];
+  'Yankees','Red Sox','Rays','Blue Jays','Orioles','White Sox','Guardians','Tigers','Twins','Royals',
+  'Dodgers','Giants','Padres','Diamondbacks','Rockies','Cardinals','Cubs','Brewers','Pirates','Reds',
+  'Mets','Phillies','Braves','Marlins','Nationals','Marlins','Marlins','Angels','Mariners','Rangers'
+]; 
 
-// CSV parser
-function parseCSV(text) {
-    const lines = text.trim().split('\n');
-    const headers = lines.shift().split(',');
-    return lines.map(line => {
-        const values = line.split(',');
-        const obj = {};
-        headers.forEach((h,i) => obj[h] = values[i]);
+function fetchCSV() {
+  fetch(csvUrl)
+    .then(res => res.text())
+    .then(text => {
+      const rows = text.trim().split('\n').map(r => r.split(','));
+      const headers = rows[0];
+      const data = rows.slice(1).map(r => {
+        let obj = {};
+        headers.forEach((h,i) => obj[h] = r[i]);
         return obj;
+      });
+      renderTeams(data);
+      document.getElementById('last-updated').textContent = `Last updated: ${new Date().toLocaleString()}`;
+    })
+    .catch(err => console.error('Failed to fetch sheet:', err));
+}
+
+function renderTeams(data) {
+  const container = document.getElementById('teams-container');
+  container.innerHTML = '';
+  allTeams.forEach(team => {
+    const teamPlayers = data.filter(d => d.Team === team).slice(0,5);
+    const card = document.createElement('div');
+    card.className = 'team-card';
+    card.innerHTML = `<h2>${team}</h2>`;
+    teamPlayers.forEach(p => {
+      ['AVG','HR','RBI','SB','SLG'].forEach(stat => {
+        const deltaVal = parseFloat(p[stat]) - parseFloat(p[stat+'_prev']);
+        const deltaClass = deltaVal > 0 ? 'up' : deltaVal < 0 ? 'down' : '';
+        const deltaText = deltaVal ? ` (${deltaVal.toFixed(3)})` : '';
+        card.innerHTML += `<div class="player">${p.Player} - ${stat}: ${p[stat]}<span class="delta ${deltaClass}">${deltaText}</span></div>`;
+      });
     });
+    container.appendChild(card);
+  });
 }
 
-// Render cards
-function renderCards(data) {
-    const grid = document.querySelector('.grid');
-    grid.innerHTML = '';
-    const stats = ['AVG','HR','RBI','SB','SLG'];
-    const teamsData = {};
-    data.forEach(p => { if(!teamsData[p.Team]) teamsData[p.Team] = []; teamsData[p.Team].push(p); });
+// Initial fetch
+fetchCSV();
 
-    allTeams.forEach(team => {
-        const players = teamsData[team] || [];
-        let cardHtml = `<div class="card"><div class="team">${team}</div>`;
-        stats.forEach(stat => {
-            cardHtml += `<div class="stat-title">${stat}</div>`;
-            const top5 = players.sort((a,b)=>parseFloat(b[stat]||0)-parseFloat(a[stat]||0)).slice(0,5);
-            if(top5.length===0){
-                cardHtml += `<div class="player">— <span>— <span class="neutral">(0)</span></span></div>`;
-            } else {
-                top5.forEach(p=>{
-                    let curr = parseFloat(p[stat]||0);
-                    let prev = parseFloat(p[stat+'_prev']||0);
-                    let delta = curr - prev;
-                    let deltaClass = delta>0?'up':delta<0?'down':'neutral';
-                    if(['HR','RBI','SB'].includes(stat)) delta=parseInt(delta); else delta=delta.toFixed(3);
-                    cardHtml += `<div class="player">${p.Player} <span>${curr} <span class="${deltaClass}">(${delta})</span></span></div>`;
-                });
-            }
-        });
-        cardHtml += `</div>`;
-        grid.innerHTML += cardHtml;
-    });
-}
-
-// Fetch CSV and render
-function fetchAndRender() {
-    document.getElementById('status').textContent = 'Loading CSV…';
-    fetch(csvUrl)
-        .then(r => {
-            if(!r.ok) throw new Error(`HTTP ${r.status}`);
-            return r.text();
-        })
-        .then(text => {
-            const data = parseCSV(text);
-            document.getElementById('status').textContent = '';
-            renderCards(data);
-        })
-        .catch(e => {
-            console.error('Error fetching CSV:', e);
-            document.getElementById('status').textContent = 'Failed to fetch sheet. Check your CSV link.';
-        });
-}
-
-// Initial load + auto-refresh every 60 seconds
-fetchAndRender();
-setInterval(fetchAndRender, 60000);
-</script>
-</body>
-</html>    return lines.map(line => {
-        const values = line.split(',');
-        const obj = {};
-        headers.forEach((h,i) => obj[h] = values[i]);
-        return obj;
-    });
-}
-
-function renderCards(data) {
-    const grid = document.querySelector('.grid');
-    grid.innerHTML = '';
-
-    const stats = ['AVG','HR','RBI','SB','SLG'];
-    const teamsData = {};
-    data.forEach(p => { if(!teamsData[p.Team]) teamsData[p.Team]=[]; teamsData[p.Team].push(p); });
-
-    allTeams.forEach(team => {
-        const players = teamsData[team] || [];
-        let cardHtml = `<div class="card"><div class="team">${team}</div>`;
-        stats.forEach(stat => {
-            cardHtml += `<div class="stat-title">${stat}</div>`;
-            const top5 = players.sort((a,b)=>parseFloat(b[stat]||0)-parseFloat(a[stat]||0)).slice(0,5);
-            if(top5.length===0){
-                cardHtml += `<div class="player">— <span>— <span class="neutral">(0)</span></span></div>`;
-            } else {
-                top5.forEach(p=>{
-                    let curr = parseFloat(p[stat]||0);
-                    let prev = parseFloat(p[stat+'_prev']||0);
-                    let delta = curr - prev;
-                    let deltaClass = delta>0?'up':delta<0?'down':'neutral';
-                    if(['HR','RBI','SB'].includes(stat)) delta=parseInt(delta); else delta=delta.toFixed(3);
-                    cardHtml += `<div class="player">${p.Player} <span>${curr} <span class="${deltaClass}">(${delta})</span></span></div>`;
-                });
-            }
-        });
-        cardHtml += `</div>`;
-        grid.innerHTML += cardHtml;
-    });
-}
-
-function fetchAndRender() {
-    fetch(csvUrl)
-        .then(r=>r.text())
-        .then(text=>{
-            const data = parseCSV(text);
-            renderCards(data);
-        })
-        .catch(e=>{
-            console.error('Error fetching CSV:',e);
-            alert('Failed to fetch sheet. Check CSV link.');
-        });
-}
-
-// Initial load and auto-update every 60 seconds
-fetchAndRender();
-setInterval(fetchAndRender,60000);
+// Refresh every 60 seconds
+setInterval(fetchCSV, 60000);
 </script>
 </body>
 </html>
