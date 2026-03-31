@@ -25,11 +25,11 @@ gap:20px;
 }
 
 <script>
-var publicSpreadsheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSdTOd2bszOwB3mFbJfLHxeaFsGTWucle4tqkDTiMGdysKQJLOz8_By-pel1D6zSm6ZH1J8XsBUQYYb/pubhtml';
+var publicSpreadsheetUrl = https://docs.google.com/spreadsheets/d/e/2PACX-1vSdTOd2bszOwB3mFbJfLHxeaFsGTWucle4tqkDTiMGdysKQJLOz8_By-pel1D6zSm6ZH1J8XsBUQYYb/pubhtml ;
 
 function showData(data) {
     const grid = document.querySelector('.grid');
-    grid.innerHTML = ''; // clear existing
+    grid.innerHTML = ''; // clear previous content
 
     // Group players by team
     let teams = {};
@@ -38,20 +38,21 @@ function showData(data) {
         teams[player.Team].push(player);
     });
 
-    // For each team, make a card
+    // Build a card per team
     Object.keys(teams).forEach(teamName => {
         let teamPlayers = teams[teamName];
 
-        // Sort top 5 by each stat
         const stats = ['AVG','HR','RBI','SB','SLG'];
         let cardHtml = `<div class="card"><div class="team">${teamName}</div>`;
 
         stats.forEach(stat => {
             cardHtml += `<div class="stat-title">${stat}</div>`;
-            // Sort descending
-            let top5 = teamPlayers.sort((a,b)=>parseFloat(b[stat])-parseFloat(a[stat])).slice(0,5);
-            top5.forEach(p=>{
-                // For now, just neutral delta
+            let top5 = teamPlayers
+                .sort((a,b) => parseFloat(b[stat]) - parseFloat(a[stat]))
+                .slice(0,5);
+
+            top5.forEach(p => {
+                // For now, delta is 0
                 cardHtml += `<div class="player">${p.Player} <span>${p[stat]} <span class="neutral">(0)</span></span></div>`;
             });
         });
@@ -61,14 +62,14 @@ function showData(data) {
     });
 }
 
-window.addEventListener('DOMContentLoaded', init);
-function init() {
+// Initialize Tabletop
+window.addEventListener('DOMContentLoaded', function() {
     Tabletop.init({
         key: publicSpreadsheetUrl,
         callback: showData,
         simpleSheet: true
     });
-}
+});
 </script>
 
 .card{
