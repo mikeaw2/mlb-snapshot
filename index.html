@@ -1,127 +1,131 @@
 <!DOCTYPE html>
 <html>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/tabletop.js/1.6.0/tabletop.min.js"></script>
 <head>
-<title>MLB Snapshot</title>
+    <title>MLB Snapshot</title>
 
-<style>
-body {
-background:#0b0e11;
-color:white;
-font-family:Arial;
-margin:0;
-padding:20px;
-}
+    <!-- Styles for dark mode and cards -->
+    <style>
+        body {
+            background: #0b0e11;
+            color: white;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
 
-h1{
-text-align:center;
-margin-bottom:30px;
-}
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
 
-.grid{
-display:grid;
-grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
-gap:20px;
-}
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
 
-<script>
-var publicSpreadsheetUrl = https://docs.google.com/spreadsheets/d/e/2PACX-1vSdTOd2bszOwB3mFbJfLHxeaFsGTWucle4tqkDTiMGdysKQJLOz8_By-pel1D6zSm6ZH1J8XsBUQYYb/pubhtml ;
+        .card {
+            background: #11151a;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,.5);
+        }
 
-function showData(data) {
-    const grid = document.querySelector('.grid');
-    grid.innerHTML = ''; // clear previous content
+        .team {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
 
-    // Group players by team
-    let teams = {};
-    data.forEach(player => {
-        if (!teams[player.Team]) teams[player.Team] = [];
-        teams[player.Team].push(player);
-    });
+        .stat-title {
+            color: #888;
+            margin-top: 10px;
+        }
 
-    // Build a card per team
-    Object.keys(teams).forEach(teamName => {
-        let teamPlayers = teams[teamName];
+        .player {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+        }
 
-        const stats = ['AVG','HR','RBI','SB','SLG'];
-        let cardHtml = `<div class="card"><div class="team">${teamName}</div>`;
+        .up { color: #00ff9c; }
+        .down { color: #ff4d4d; }
+        .neutral { color: #999; }
+    </style>
 
-        stats.forEach(stat => {
-            cardHtml += `<div class="stat-title">${stat}</div>`;
-            let top5 = teamPlayers
-                .sort((a,b) => parseFloat(b[stat]) - parseFloat(a[stat]))
-                .slice(0,5);
-
-            top5.forEach(p => {
-                // For now, delta is 0
-                cardHtml += `<div class="player">${p.Player} <span>${p[stat]} <span class="neutral">(0)</span></span></div>`;
-            });
-        });
-
-        cardHtml += `</div>`;
-        grid.innerHTML += cardHtml;
-    });
-}
-
-// Initialize Tabletop
-window.addEventListener('DOMContentLoaded', function() {
-    Tabletop.init({
-        key: publicSpreadsheetUrl,
-        callback: showData,
-        simpleSheet: true
-    });
-});
-</script>
-
-.card{
-background:#11151a;
-padding:15px;
-border-radius:10px;
-box-shadow:0 0 10px rgba(0,0,0,.5);
-}
-
-.team{
-font-size:20px;
-font-weight:bold;
-margin-bottom:10px;
-}
-
-.stat-title{
-color:#888;
-margin-top:10px;
-}
-
-.player{
-display:flex;
-justify-content:space-between;
-font-size:14px;
-}
-
-.up{color:#00ff9c;}
-.down{color:#ff4d4d;}
-.neutral{color:#999;}
-</style>
+    <!-- Tabletop.js library for Google Sheets -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tabletop.js/1.6.0/tabletop.min.js"></script>
 </head>
-
 <body>
 
 <h1>MLB Snapshot</h1>
 
-<div class="grid">
+<div class="grid"></div>
 
-<div class="card">
-<div class="team">Yankees</div>
+<script>
+    // Replace this with your published Google Sheet link
+    var publicSpreadsheetUrl = 'YOUR_PUBLISHED_GOOGLE_SHEET_LINK';
 
-<div class="stat-title">AVG</div>
-<div class="player">Judge <span>.333 <span class="up">(+.012)</span></span></div>
-<div class="player">Soto <span>.310 <span class="down">(-.004)</span></span></div>
+    // Static list of all 30 MLB teams
+    const allTeams = [
+        "Yankees","Red Sox","Rays","Blue Jays","Orioles",
+        "White Sox","Guardians","Tigers","Twins","Royals",
+        "Dodgers","Giants","Padres","Diamondbacks","Rockies",
+        "Cubs","Cardinals","Brewers","Pirates","Reds",
+        "Braves","Marlins","Mets","Phillies","Nationals",
+        "Rangers","Athletics","Angels","Mariners","Blue Jays"
+    ];
 
-<div class="stat-title">HR</div>
-<div class="player">Judge <span>6 <span class="up">(+1)</span></span></div>
-<div class="player">Stanton <span>4 <span class="neutral">(0)</span></span></div>
+    function showData(data) {
+        const grid = document.querySelector('.grid');
+        grid.innerHTML = ''; // clear previous content
 
-</div>
+        // Group players by team from sheet
+        let teams = {};
+        data.forEach(player => {
+            if (!teams[player.Team]) teams[player.Team] = [];
+            teams[player.Team].push(player);
+        });
 
-</div>
+        // Build a card for each of the 30 teams
+        allTeams.forEach(teamName => {
+            let teamPlayers = teams[teamName] || [];
+
+            const stats = ['AVG','HR','RBI','SB','SLG'];
+            let cardHtml = `<div class="card"><div class="team">${teamName}</div>`;
+
+            stats.forEach(stat => {
+                cardHtml += `<div class="stat-title">${stat}</div>`;
+
+                // Sort top 5 players per stat
+                let top5 = teamPlayers
+                    .sort((a,b) => parseFloat(b[stat] || 0) - parseFloat(a[stat] || 0))
+                    .slice(0,5);
+
+                // If no players, show placeholder
+                if(top5.length === 0){
+                    cardHtml += `<div class="player">— <span>— <span class="neutral">(0)</span></span></div>`;
+                } else {
+                    top5.forEach(p => {
+                        cardHtml += `<div class="player">${p.Player} <span>${p[stat] || '—'} <span class="neutral">(0)</span></span></div>`;
+                    });
+                }
+            });
+
+            cardHtml += `</div>`;
+            grid.innerHTML += cardHtml;
+        });
+    }
+
+    // Initialize Tabletop
+    window.addEventListener('DOMContentLoaded', function() {
+        Tabletop.init({
+            key: publicSpreadsheetUrl,
+            callback: showData,
+            simpleSheet: true
+        });
+    });
+</script>
 
 </body>
 </html>
